@@ -96,6 +96,7 @@ function GemSelectClass:CalcOutputWithThisGem(calcFunc, gemData, qualityId)
 		gemInstance.displayEffect = oldGem.displayEffect
 	else
 		gemList[self.index] = nil
+		calcFunc({ }, { allocNodes = true, requirementsItems = true })
 	end
 
 	return output, gemInstance
@@ -340,6 +341,7 @@ function GemSelectClass:UpdateSortCache()
 			sortCache.dpsColor[gemId] = "^xFFFF66"
 		end
 	end
+	-- calcFunc({ }, { allocNodes = true, requirementsItems = true })
 	--ConPrintf("Gem Selector time: %d ms", GetTime() - start)
 end
 

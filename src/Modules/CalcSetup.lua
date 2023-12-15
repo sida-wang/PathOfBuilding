@@ -1238,18 +1238,14 @@ function calcs.initEnv(build, mode, override, specEnv)
 				}
 				local groupCfg = groupCfgList[slotName or "noSlot"][group]
 				local propertyModList = groupCfg.propertyModList
-				local targetListList = {}
+				local supportList
 				if groupCfg.slotName then
 					supportLists[groupCfg.slotName] = supportLists[groupCfg.slotName] or {}
 					supportLists[groupCfg.slotName][group] = supportLists[groupCfg.slotName][group] or {}
-					t_insert(targetListList, supportLists[groupCfg.slotName][group])
-					for _, targetSlotName in ipairs(env.crossLinkedSupportGroups[groupCfg.slotName] or {}) do
-						supportLists[targetSlotName][group] = supportLists[targetSlotName][group] or {}
-						t_insert(targetListList, supportLists[targetSlotName][group])
-					end
+					supportList = supportLists[groupCfg.slotName][group]
 				else
 					supportLists[group] = supportLists[group] or {}
-					t_insert(targetListList, supportLists[group])
+					supportList = supportLists[group]
 				end
 
 				-- if not unique item that provides skills
@@ -1264,15 +1260,13 @@ function calcs.initEnv(build, mode, override, specEnv)
 							grantedEffect = env.data.skills["Support"..value.skillId]
 						end
 						if grantedEffect then
-							for _, targetList in ipairs(targetListList) do
-								t_insert(targetList, {
-									grantedEffect = grantedEffect,
-									gemData = env.data.gems[env.data.gemForBaseName[grantedEffect.name] or env.data.gemForBaseName[grantedEffect.name .. " Support"]],
-									level = value.level,
-									quality = 0,
-									enabled = true,
-								})
-							end
+							t_insert(supportList, {
+								grantedEffect = grantedEffect,
+								gemData = env.data.gems[env.data.gemForBaseName[grantedEffect.name] or env.data.gemForBaseName[grantedEffect.name .. " Support"]],
+								level = value.level,
+								quality = 0,
+								enabled = true,
+							})
 						end
 					end
 				end
@@ -1318,35 +1312,33 @@ function calcs.initEnv(build, mode, override, specEnv)
 							-- Validate support gem level in case there is no active skill (and no full calculation)
 							calcLib.validateGemLevel(supportEffect)
 
-							for _, targetList in ipairs(targetListList) do
-								local add = true
-								for index, otherSupport in ipairs(targetList) do
-									-- Check if there's another better support already present
-									if grantedEffect == otherSupport.grantedEffect then
-										add = false
-										if supportEffect.level > otherSupport.level or (supportEffect.level == otherSupport.level and supportEffect.quality > otherSupport.quality) then
-											if env.mode == "MAIN" then
-												otherSupport.superseded = true
-											end
-											targetList[index] = supportEffect
-										else
-											supportEffect.superseded = true
-										end
-										break
-									elseif grantedEffect.plusVersionOf == otherSupport.grantedEffect.id then
-										add = false
+							local add = true
+							for index, otherSupport in ipairs(supportList) do
+								-- Check if there's another better support already present
+								if grantedEffect == otherSupport.grantedEffect then
+									add = false
+									if supportEffect.level > otherSupport.level or (supportEffect.level == otherSupport.level and supportEffect.quality > otherSupport.quality) then
 										if env.mode == "MAIN" then
 											otherSupport.superseded = true
 										end
-										targetList[index] = supportEffect
-									elseif otherSupport.grantedEffect.plusVersionOf == grantedEffect.id then
-										add = false
+										supportList[index] = supportEffect
+									else
 										supportEffect.superseded = true
 									end
+									break
+								elseif grantedEffect.plusVersionOf == otherSupport.grantedEffect.id then
+									add = false
+									if env.mode == "MAIN" then
+										otherSupport.superseded = true
+									end
+									supportList[index] = supportEffect
+								elseif otherSupport.grantedEffect.plusVersionOf == grantedEffect.id then
+									add = false
+									supportEffect.superseded = true
 								end
-								if add then
-									t_insert(targetList, supportEffect)
-								end
+							end
+							if add then
+								t_insert(supportList, supportEffect)
 							end
 						end
 						if gemInstance.gemData then
@@ -1374,13 +1366,15 @@ function calcs.initEnv(build, mode, override, specEnv)
 				socketGroupSkillListList[slotName or "noSlot"] = socketGroupSkillListList[slotName or "noSlot"] or {}
 				socketGroupSkillListList[slotName or "noSlot"][group] = socketGroupSkillListList[slotName or "noSlot"][group] or {}
 				local socketGroupSkillList = socketGroupSkillListList[slotName or "noSlot"][group]
-
+				
+				local slotHasActiveSkill = false
 				-- Create active skills
 				for gemIndex, gemInstance in ipairs(group.gemList) do
 					if gemInstance.enabled and (gemInstance.gemData or gemInstance.grantedEffect) then
 						local grantedEffectList = gemInstance.gemData and gemInstance.gemData.grantedEffectList or { gemInstance.grantedEffect }
 						for index, grantedEffect in ipairs(grantedEffectList) do
 							if not grantedEffect.support and not grantedEffect.unsupported and (not grantedEffect.hasGlobalEffect or gemInstance["enableGlobal"..index]) then
+								slotHasActiveSkill = true
 								local activeEffect = {
 									grantedEffect = grantedEffect,
 									level = gemInstance.level,
@@ -1407,11 +1401,54 @@ function calcs.initEnv(build, mode, override, specEnv)
 								end
 								local appliedSupportList = {}
 								-- if skill granted by unique item, go through all support groups in slot
+								-- add displayGemList for tooltip to display all gems linked to skill
+								-- group.displayGemList = copyTable(group.gemList, false)
+								group.displayGemList = {}
+								for _, gem in ipairs(group.gemList) do
+									t_insert(group.displayGemList, gem)
+								end
 								if group.source then 
 									if supportLists[slotName] then
+										-- add socketed supports from other socketgroups 
+										for _, otherSocketGroup in ipairs(build.skillsTab.socketGroupList) do
+											if otherSocketGroup.slot and otherSocketGroup.slot == group.slot then
+												for _, gem in ipairs(otherSocketGroup.gemList) do
+													if gem.gemData and gem.gemData.grantedEffect and gem.gemData.grantedEffect.support then
+														t_insert(group.displayGemList, gem)
+													end
+												end
+											end
+										end
 										for _, supportGroup in pairs(supportLists[slotName]) do
 											for _, support in ipairs(supportGroup) do
-												t_insert(appliedSupportList, support)
+												local add = true
+												for index, otherSupport in ipairs(appliedSupportList) do
+													-- Check if there's another better support already present
+													if support.grantedEffect == otherSupport.grantedEffect then
+														add = false
+														if support.level > otherSupport.level or (support.level == otherSupport.level and support.quality > otherSupport.quality) then
+															if env.mode == "MAIN" then
+																otherSupport.superseded = true
+															end
+															appliedSupportList[index] = support
+														else
+															support.superseded = true
+														end
+														break
+													elseif support.grantedEffect.plusVersionOf == otherSupport.grantedEffect.id then
+														add = false
+														if env.mode == "MAIN" then
+															otherSupport.superseded = true
+														end
+														appliedSupportList[index] = support
+													elseif otherSupport.grantedEffect.plusVersionOf == support.grantedEffect.id then
+														add = false
+														support.superseded = true
+													end
+												end
+												if add then
+													t_insert(appliedSupportList, support)
+												end
 											end
 										end
 									end
@@ -1424,9 +1461,46 @@ function calcs.initEnv(build, mode, override, specEnv)
 									for crossLinkedSupportSlot, crossLinkedSupportGroup in pairs(env.crossLinkedSupportGroups) do
 										for _, crossLinkedSupportedSlot in ipairs(crossLinkedSupportGroup) do
 											if crossLinkedSupportedSlot == slotName and supportLists[crossLinkedSupportSlot] then
+												-- add socketed supports from other 
+												for _, otherSocketGroup in ipairs(build.skillsTab.socketGroupList) do
+													if otherSocketGroup.slot and otherSocketGroup.slot == crossLinkedSupportSlot then
+														for _, gem in ipairs(otherSocketGroup.gemList) do
+															if gem.gemData and gem.gemData.grantedEffect and gem.gemData.grantedEffect.support then
+																t_insert(group.displayGemList, gem)
+															end
+														end
+													end
+												end
 												for _, supportGroup in pairs(supportLists[crossLinkedSupportSlot]) do
 													for _, support in ipairs(supportGroup) do
-														t_insert(appliedSupportList, support)
+														local add = true
+														for index, otherSupport in ipairs(appliedSupportList) do
+															-- Check if there's another better support already present
+															if support.grantedEffect == otherSupport.grantedEffect then
+																add = false
+																if support.level > otherSupport.level or (support.level == otherSupport.level and support.quality > otherSupport.quality) then
+																	if env.mode == "MAIN" then
+																		otherSupport.superseded = true
+																	end
+																	appliedSupportList[index] = support
+																else
+																	support.superseded = true
+																end
+																break
+															elseif support.grantedEffect.plusVersionOf == otherSupport.grantedEffect.id then
+																add = false
+																if env.mode == "MAIN" then
+																	otherSupport.superseded = true
+																end
+																appliedSupportList[index] = support
+															elseif otherSupport.grantedEffect.plusVersionOf == support.grantedEffect.id then
+																add = false
+																support.superseded = true
+															end
+														end
+														if add then
+															t_insert(appliedSupportList, support)
+														end
 													end
 												end
 											end
@@ -1453,6 +1527,9 @@ function calcs.initEnv(build, mode, override, specEnv)
 							})
 						end
 					end
+				end
+				if not slotHasActiveSkill and group.displayGemList then
+					group.displayGemList = nil
 				end
 			end
 		end
