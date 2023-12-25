@@ -31,9 +31,10 @@ jobs:
       - name: Setup environment
         run: >
             mkdir /cache;
-            cd /root &&
-            git config --global --add safe.directory /root &&
+            git config --global --add safe.directory . &&
             echo "DEV_BRANCH_SHA=$(git rev-parse dev)" >> $GITHUB_ENV
+      - name: Generate builds in reference to current commit
+        run: busted --lua=luajit -r generate
       - name: Check if build cache exists
         id: cache-builds
         uses: actions/cache@v3
@@ -45,20 +46,9 @@ jobs:
       - if: ${{ steps.cache-builds.outputs.cache-hit != 'true' }}
         name: Generate builds in reference to dev branch
         run: >
-          mkdir /devRef &&
-          cp -r /root/. /devRef/ &&
-          cd /devRef &&
-          git restore . &&
-          git clean -fd &&
           git checkout dev &&
-          cp /root/.busted . &&
-          rm -rf /devRef/spec/ &&
-          cp -r /root/spec/ /devRef/spec/ &&
+          git checkout $GITHUB_SHA -- .busted spec &&
           BUILDCACHEPREFIX='/cache' busted --lua=luajit -r generate &&
-          date > "/cache/${{ env.DEV_BRANCH_SHA }}" &&
-          cd /root
-      - name: Generate builds in reference to current commit
-        run: busted --lua=luajit -r generate
       - name: Display differences
         run: >
           for build in /cache/*.lua;
