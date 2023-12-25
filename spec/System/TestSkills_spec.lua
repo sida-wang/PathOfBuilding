@@ -53,8 +53,4 @@ describe("TestAttacks", function()
 
         assert.True(build.calcsTab.mainOutput.SkillTriggerRate == build.calcsTab.mainOutput.Speed)
     end)
-	
-	it("Test Tests", function()
-        assert.True(false)
-    end)
 end)
