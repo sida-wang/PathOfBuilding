@@ -31,7 +31,8 @@ jobs:
       - name: Setup environment
         run: >
             mkdir /cache;
-            git config --global --add safe.directory . &&
+            cd /root &&
+            git config --global --add safe.directory /root &&
             echo "DEV_BRANCH_SHA=$(git rev-parse dev)" >> $GITHUB_ENV
       - name: Generate builds in reference to current commit
         run: busted --lua=luajit -r generate
