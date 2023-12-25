@@ -1,0 +1,1 @@
+# This folder is for generated builds to be cached during build diff process. https://github.com/Paliak/PathOfBuilding/blob/dev/CONTRIBUTING.md#testing

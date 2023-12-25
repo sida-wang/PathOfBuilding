@@ -11,8 +11,6 @@ jobs:
     container:
     # No good way to automatically get the lowercase repo owner name here.
       image: ghcr.io/paliak/busted-tests
-      volumes:
-        - ${{ github.workspace }}:/root
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,17 +21,9 @@ jobs:
     container:
     # No good way to automatically get the lowercase repo owner name here.
       image: ghcr.io/paliak/busted-tests
-      volumes:
-        - ${{ github.workspace }}:/root
     steps:
-      - name: Checkout repository
+      - name: Checkout HEAD
         uses: actions/checkout@v4
-      - name: Setup environment
-        run: >
-            mkdir /cache;
-            cd /root &&
-            git config --global --add safe.directory /root &&
-            echo "DEV_BRANCH_SHA=$(git rev-parse dev)" >> $GITHUB_ENV
       - name: Generate builds in reference to current commit
         run: busted --lua=luajit -r generate
       - name: Check if build cache exists
@@ -42,17 +32,27 @@ jobs:
         env:
           cache-name: cached-dev-builds
         with:
-          path: /cache
-          key: ${{ env.DEV_BRANCH_SHA }}
+          path: spec/Cache
+          key: ${{ github.event.pull_request.base.sha }}
+      - if: ${{ steps.cache-builds.outputs.cache-hit != 'true' }}
+        name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          ref: 'dev'
+      - if: ${{ steps.cache-builds.outputs.cache-hit != 'true' }}
+        name: Checkout new test related files in case they changed
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          sparse-checkout: |
+            .busted
+            spec
       - if: ${{ steps.cache-builds.outputs.cache-hit != 'true' }}
         name: Generate builds in reference to dev branch
-        run: >
-          git checkout dev &&
-          git checkout $GITHUB_SHA -- .busted spec &&
-          BUILDCACHEPREFIX='/cache' busted --lua=luajit -r generate &&
+        run: BUILDCACHEPREFIX='${{ github.workspace }}/spec/Cache' busted --lua=luajit -r generate
       - name: Display differences
         run: >
-          for build in /cache/*.lua;
+          for build in spec/Cache/*.lua;
           do
           BASENAME=$(basename "$build");
           echo "[-] Diff for $BASENAME";

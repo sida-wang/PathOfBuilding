@@ -14,4 +14,3 @@ services:
     command: /bin/sh -c ./spec/buildDiff.sh
     volumes:
       - ./:/root
-      - /tmp/buildcache:/cache
