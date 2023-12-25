@@ -1,11 +1,12 @@
 #!/bin/sh
+git config --system --add safe.directory /root
 headref=$(git rev-parse HEAD)
 devref=$(git rev-parse dev)
 
 if [[ ! -f "/root/spec/Cache/$devref" ]] # Output of builds outdated or nonexistent
 then
 	rm "/root/spec/Cache/*"
-    git config --global --add safe.directory /root && \
+    rm -rf /devRef
     mkdir /devRef && cp -r /root/. /devRef/ && cd /devRef && \
     git restore . && git clean -fd && git checkout dev && \
     cp /root/.busted . && rm -rf /devRef/spec/ && cp -r /root/spec/ /devRef/spec/ && \
