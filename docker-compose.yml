@@ -1,8 +1,17 @@
 services:
   busted-tests:
-    build: .
+    #build: .
+    image: ghcr.io/paliak/busted-tests
     container_name: busted-tests
     ports:
       - "9966:9966"
     volumes:
       - ./:/root
+  busted-diff:
+    #build: .
+    image: ghcr.io/paliak/busted-tests
+    container_name: busted-diff
+    command: /bin/sh -c ./spec/buildDiff.sh
+    volumes:
+      - ./:/root
+      - /tmp/buildcache:/cache

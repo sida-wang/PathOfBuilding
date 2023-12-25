@@ -15,7 +15,7 @@ local function fetchBuilds(path, buildList)
                     end
                     local fileText = fileHnd:read("*a")
                     fileHnd:close()
-                    buildList[f] = fileText
+                    buildList[file] = fileText
                 end
             end
         end
@@ -42,12 +42,13 @@ function buildTable(tableName, values, string)
 end
 
 local buildList = fetchBuilds("../spec/TestBuilds")
+
+
 for filename, testBuild in pairs(buildList) do
+    print("[+] Computing " .. filename)
     loadBuildFromXML(testBuild)
-    local fileHnd, errMsg = io.open(filename:gsub("^(.+)%..+$", "%1.lua"), "w+")
-    fileHnd:write("return {\n   xml = [[")
+    local fileHnd, errMsg = io.open(filename:gsub("(.+)%..+$", (os.getenv("BUILDCACHEPREFIX") or "/tmp") .. "/%1.lua"), "w+")
     fileHnd:write(testBuild)
-    fileHnd:write("]],\n    ")
     fileHnd:write(buildTable("output", build.calcsTab.mainOutput) .. "\n}")
     fileHnd:close()
 end

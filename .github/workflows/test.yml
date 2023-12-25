@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
     # No good way to automatically get the lowercase repo owner name here.
-      image: ghcr.io/paliak/busted-tests:latest
+      image: ghcr.io/paliak/busted-tests
       volumes:
         - ${{ github.workspace }}:/root
     steps:
@@ -18,3 +18,53 @@ jobs:
         uses: actions/checkout@v4
       - name: Run busted tests
         run: busted --lua=luajit
+  run_build_diff:
+    runs-on: ubuntu-latest
+    container:
+    # No good way to automatically get the lowercase repo owner name here.
+      image: ghcr.io/paliak/busted-tests
+      volumes:
+        - ${{ github.workspace }}:/root
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup environment
+        run: >
+            mkdir /cache;
+            cd /root &&
+            git config --global --add safe.directory /root &&
+            echo "DEV_BRANCH_SHA=$(git rev-parse dev)" >> $GITHUB_ENV
+      - name: Check if build cache exists
+        id: cache-builds
+        uses: actions/cache@v3
+        env:
+          cache-name: cached-dev-builds
+        with:
+          path: /cache
+          key: ${{ env.DEV_BRANCH_SHA }}
+      - if: ${{ steps.cache-builds.outputs.cache-hit != 'true' }}
+        name: Generate builds in reference to dev branch
+        run: >
+          mkdir /devRef &&
+          cp -r /root/. /devRef/ &&
+          cd /devRef &&
+          git restore . &&
+          git clean -fd &&
+          git checkout dev &&
+          cp /root/.busted . &&
+          rm -rf /devRef/spec/ &&
+          cp -r /root/spec/ /devRef/spec/ &&
+          BUILDCACHEPREFIX='/cache' busted --lua=luajit -r generate &&
+          date > "/cache/${{ env.DEV_BRANCH_SHA }}" &&
+          cd /root
+      - name: Generate builds in reference to current commit
+        run: busted --lua=luajit -r generate
+      - name: Display differences
+        run: >
+          for build in /cache/*.lua;
+          do
+          BASENAME=$(basename "$build");
+          echo "[-] Diff for $BASENAME";
+          diff "$build" "/tmp/$BASENAME";
+          echo "[+] Diff for $BASENAME";
+          done

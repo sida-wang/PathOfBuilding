@@ -1,5 +1,5 @@
 FROM alpine:3.18 as base
-RUN apk add --no-cache wget unzip openssl build-base readline-dev cmake readline-dev git ca-certificates
+RUN apk add --no-cache wget unzip openssl build-base readline-dev cmake readline-dev git ca-certificates tar
 
 FROM base as buildbase
 WORKDIR /opt
