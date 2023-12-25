@@ -14,7 +14,7 @@ fi
 
 if [[ -f "/cache/$devref" ]] #Make sure cache of dev branch builds exists and matches current dev
 then
-    BUILDCACHEPREFIX='/tmp' busted --lua=luajit -r generate && date > "/tmp/$headref" && && echo "[+] Build cache computed for $headref"
+    BUILDCACHEPREFIX='/tmp' busted --lua=luajit -r generate && date > "/tmp/$headref" && echo "[+] Build cache computed for $headref"
 fi
 
 if [[ -f "/tmp/$headref" ]] # Make sure generating builds for current HEAD was successful
