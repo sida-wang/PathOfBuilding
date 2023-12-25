@@ -214,20 +214,18 @@ More tests can be added to this folder to test specific functionality, or new te
 Docker alternative:
 
 1. Install [Docker](https://www.docker.com/get-started)
-2. Run `docker-compose up -d` from the command line
-3. View last results in `spec/test_results.log`
+2. Run `docker-compose up` from the command line
 
-### Creating new test builds or fixing an existing build
-
-Sometimes a change will be made that intends to change the stats garnered by PoB, which will break our tests.
-1. Add the new build XML (if applicable) to the `TestBuilds` folder
-2. Run `busted --lua=luajit -r generate` to generate a LUA file that contains the current stats of that build
-3. Run `busted --lua=luajit` and the tests should pass
-
-Docker alternative:
-
-1. Add the new build XML (if applicable) to the `TestBuilds` folder
-2. Run `docker-compose up -d` to generate a LUA file that contains the current stats of that build and run the tests
+### Debugging tests
+When running tests with a docker container it is possible to use emmylua for debugging. Paste in the following right under `function launch:OnInit()` in `./src/Launch.lua`:
+```lua
+package.cpath = package.cpath .. ";/usr/local/bin/?.so"
+local dbg = require("emmy_core")
+-- This port must match the Visual Studio Code configuration. Default is 9966.
+dbg.tcpListen("localhost", 9966)
+dbg.waitIDE()
+```
+After running `docker-compose up` the code will wait at the `dbg.waitIDE()` line until a debugger is attached. This will allow stepping through any code that is internal to POB but will not work for busted related code.
 
 ## Path of Building development tutorials
 
