@@ -45,7 +45,7 @@ local buildList = fetchBuilds("../spec/TestBuilds")
 
 
 for filename, testBuild in pairs(buildList) do
-    print("[+] Computing " .. filename)
+    print("[+] Computing " .. filename:gsub("(.+)%..+$", (os.getenv("BUILDCACHEPREFIX") or "/tmp") .. "/%1.lua"))
     loadBuildFromXML(testBuild)
     local fileHnd, errMsg = io.open(filename:gsub("(.+)%..+$", (os.getenv("BUILDCACHEPREFIX") or "/tmp") .. "/%1.lua"), "w+")
     fileHnd:write(testBuild)

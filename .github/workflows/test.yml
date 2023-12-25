@@ -35,22 +35,19 @@ jobs:
           path: spec/Cache
           key: ${{ github.event.pull_request.base.sha }}
       - if: ${{ steps.cache-builds.outputs.cache-hit != 'true' }}
+        name: Save changes to tests files
+        run: cp -r .busted spec /tmp/
+      - if: ${{ steps.cache-builds.outputs.cache-hit != 'true' }}
         name: Checkout dev
         uses: actions/checkout@v4
         with:
           ref: 'dev'
       - if: ${{ steps.cache-builds.outputs.cache-hit != 'true' }}
-        name: Checkout new test related files in case they changed
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          sparse-checkout-cone-mode: false
-          sparse-checkout: |
-            .busted
-            spec/*
+        name: Patch dev with latest tests files
+        run: rm -rf .busted spec && cp -r /tmp/.busted /tmp/spec .
       - if: ${{ steps.cache-builds.outputs.cache-hit != 'true' }}
         name: Generate builds in reference to dev branch
-        run: BUILDCACHEPREFIX='${{ github.workspace }}/spec/Cache' busted --lua=luajit -r generate
+        run: BUILDCACHEPREFIX="$(realpath spec/Cache)" busted --lua=luajit -r generate
       - name: Display differences
         run: >
           for build in spec/Cache/*.lua;
