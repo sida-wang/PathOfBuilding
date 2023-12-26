@@ -11,6 +11,6 @@ services:
     #build: .
     image: ghcr.io/paliak/busted-tests
     container_name: busted-diff
-    command: command: /bin/sh -c 'chmod 777 ./spec/buildDiff.sh && ./spec/buildDiff.sh'
+    command: /bin/sh -c 'chmod 777 ./spec/buildDiff.sh && ./spec/buildDiff.sh'
     volumes:
       - ./:/root
