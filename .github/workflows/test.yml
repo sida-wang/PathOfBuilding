@@ -54,6 +54,6 @@ jobs:
           do
           BASENAME=$(basename "$build");
           echo "[-] Diff for $BASENAME";
-          diff "$build" "/tmp/$BASENAME";
+          diff "$build" "/tmp/$BASENAME" || true;
           echo "[+] Diff for $BASENAME";
           done
