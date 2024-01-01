@@ -26,5 +26,6 @@ RUN --mount=type=cache,from=luajit,source=/opt,target=/opt make -C /opt/LuaJIT/ 
 RUN ln -sf /usr/local/bin/luajit-2.1.0-beta3 /usr/local/bin/luajit
 RUN --mount=type=cache,from=emmyluadebugger,source=/opt,target=/opt make -C /opt/EmmyLuaDebugger/build/ install
 
+ENV HISTFILE=/dev/null
 WORKDIR /root
 CMD busted --lua=luajit

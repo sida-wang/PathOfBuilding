@@ -42,16 +42,28 @@ function buildTable(tableName, values, string)
 end
 
 local buildList = fetchBuilds("../spec/TestBuilds")
-
+local currentBuild = 0
+local buildCount = 0
+for _, _ in pairs(buildList) do
+    buildCount = buildCount + 1
+end
 
 for filename, testBuild in pairs(buildList) do
 	local filepath = filename:gsub("(.+)%..+$", (os.getenv("BUILDCACHEPREFIX") or "/tmp") .. "/%1.lua")
-    print("[+] Computing " .. filepath)
+    print(string.format("[+] %d/%d Computing %s", currentBuild, buildCount, filepath))
+    currentBuild = currentBuild + 1
     loadBuildFromXML(testBuild)
+	
     local fileHnd, errMsg = io.open(filepath, "w+")
     fileHnd:write("return {\n   xml = [[")
-    fileHnd:write(testBuild)
+    fileHnd:write(build:SaveDB("Cache"))
     fileHnd:write("]],\n")
     fileHnd:write(buildTable("output", build.calcsTab.mainOutput) .. "\n}")
     fileHnd:close()
+    if (currentBuild % 10 == 0) then -- Duct tape fix for memory usage
+        local before = collectgarbage("count")
+        LoadModule("Data/ModCache", modLib.parseModCache)
+        collectgarbage("collect")
+        ConPrintf("%dkB => %dkB", before, collectgarbage("count"))
+    end
 end

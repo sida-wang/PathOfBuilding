@@ -5,7 +5,7 @@ devref=$(git rev-parse dev)
 
 if [[ ! -f "/root/spec/Cache/$devref" ]] # Output of builds outdated or nonexistent
 then
-	rm "/root/spec/Cache/*"
+	rm /root/spec/Cache/*
     rm -rf /devRef
     mkdir /devRef && cp -r /root/. /devRef/ && cd /devRef && \
     git restore . && git clean -fd && git checkout dev && \
@@ -17,6 +17,7 @@ fi
 
 if [[ -f "/root/spec/Cache/$devref" ]] #Make sure cache of dev branch builds exists and matches current dev
 then
+    rm /tmp/*
     BUILDCACHEPREFIX='/tmp' busted --lua=luajit -r generate && date > "/tmp/$headref" && echo "[+] Build cache computed for $headref"
 fi
 
