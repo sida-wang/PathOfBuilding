@@ -1,5 +1,5 @@
 FROM alpine:3.18 as base
-RUN apk add --no-cache wget unzip openssl build-base readline-dev cmake readline-dev git ca-certificates tar
+RUN apk add --no-cache curl unzip openssl build-base readline-dev cmake readline-dev git ca-certificates libcurl curl-dev zlib parallel tar 
 
 FROM base as buildbase
 WORKDIR /opt
@@ -21,11 +21,13 @@ RUN cd EmmyLuaDebugger && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Re
 FROM base
 RUN --mount=type=cache,from=buildBase,source=/opt,target=/opt make -C /opt/lua-5.1.5/ install
 RUN --mount=type=cache,from=luarocks,source=/opt,target=/opt make -C /opt/luarocks-3.7.0/ install
-RUN luarocks install busted && luarocks install cluacov
-RUN --mount=type=cache,from=luajit,source=/opt,target=/opt make -C /opt/LuaJIT/ install
-RUN ln -sf /usr/local/bin/luajit-2.1.0-beta3 /usr/local/bin/luajit
-RUN --mount=type=cache,from=emmyluadebugger,source=/opt,target=/opt make -C /opt/EmmyLuaDebugger/build/ install
 
-ENV HISTFILE=/dev/null
-WORKDIR /root
-CMD busted --lua=luajit
+#Install here to install pkgs in pararell with compilation of emmylua and luajit
+RUN luarocks install busted
+RUN luarocks install cluacov
+RUN luarocks install Lua-cURL
+RUN luarocks install lua-zlib
+RUN luarocks install luaposix
+
+RUN --mount=type=cache,from=luajit,source=/opt,target=/opt make -C /opt/LuaJIT/ install && ln -sf /usr/local/bin/luajit-2.1.0-beta3 /usr/local/bin/luajit
+RUN --mount=type=cache,from=emmyluadebugger,source=/opt,target=/opt make -C /opt/EmmyLuaDebugger/build/ install
