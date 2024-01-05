@@ -8,7 +8,7 @@ if [[ ! -f "$CACHEDIR/$devref" ]] # Output of builds outdated or nonexistent
 then
 	rm -rf $CACHEDIR/*
     cp -rf --parents $WORKDIR /tmp && cd /tmp$WORKDIR && \
-    git restore . && git clean -fd && git checkout dev && \
+    git restore . && git clean -fd && git checkout origin/dev && \
     cp $WORKDIR/.busted /tmp$WORKDIR/.busted && cp $WORKDIR/src/HeadlessWrapper.lua /tmp$WORKDIR/src/HeadlessWrapper.lua && rm -rf /tmp$WORKDIR/spec/ && cp -r $WORKDIR/spec/ /tmp$WORKDIR/spec/ && \
     cat $WORKDIR/spec/builds.txt | parallel --will-cite --ungroup --pipe -N50 "cat > /tmp/parallel_links_{#};  BUILDLINKS=/tmp/parallel_links_{#} BUILDCACHEPREFIX=${CACHEDIR} busted --lua=luajit -r generate; rm /tmp/parallel_links_{#}" && \
     BUILDCACHEPREFIX=${CACHEDIR} busted --lua=luajit -r generate && date > "$CACHEDIR/$devref" && echo "[+] Build cache computed for $devref" && cd $WORKDIR
