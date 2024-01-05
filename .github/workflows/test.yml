@@ -19,6 +19,7 @@ jobs:
     steps:
       - name: Checkout HEAD
         uses: actions/checkout@v4
+      - run: git fetch --depth=1
       - name: Create cache directory
         run: mkdir /tmp/Cache
       - name: Check if build cache exists
