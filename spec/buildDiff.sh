@@ -2,7 +2,7 @@
 cd $WORKDIR
 git config --global --add safe.directory /workdir
 headref=$(git rev-parse HEAD)
-devref=$(git rev-parse dev)
+devref=$(git rev-parse origin/dev)
 
 if [[ ! -f "$CACHEDIR/$devref" ]] # Output of builds outdated or nonexistent
 then
