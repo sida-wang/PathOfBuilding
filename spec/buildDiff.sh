@@ -11,7 +11,7 @@ then
     git restore . && git clean -fd && git checkout dev && \
     cp $WORKDIR/.busted /tmp$WORKDIR/.busted && cp $WORKDIR/src/HeadlessWrapper.lua /tmp$WORKDIR/src/HeadlessWrapper.lua && rm -rf /tmp$WORKDIR/spec/ && cp -r $WORKDIR/spec/ /tmp$WORKDIR/spec/ && \
     cat $WORKDIR/spec/builds.txt | parallel --will-cite --ungroup --pipe -N50 "cat > /tmp/parallel_links_{#};  BUILDLINKS=/tmp/parallel_links_{#} BUILDCACHEPREFIX=${CACHEDIR} busted --lua=luajit -r generate; rm /tmp/parallel_links_{#}" && \
-    BUILDCACHEPREFIX=${CACHEDIR} busted --lua=luajit -r generate && date > "$CACHEDIR/$devref" && echo "[+] Build cache computed for $devref"
+    BUILDCACHEPREFIX=${CACHEDIR} busted --lua=luajit -r generate && date > "$CACHEDIR/$devref" && echo "[+] Build cache computed for $devref" && cd $WORKDIR
 fi
 
 if [[ -f "$CACHEDIR/$devref" ]] #Make sure cache of dev branch builds exists and matches current dev

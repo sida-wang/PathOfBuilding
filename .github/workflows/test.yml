@@ -8,52 +8,27 @@ on:
 jobs:
   run_unit_tests:
     runs-on: ubuntu-latest
-    container:
-    # No good way to automatically get the lowercase repo owner name here.
-      image: ghcr.io/paliak/busted-tests
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Run busted tests
-        run: busted --lua=luajit
+        run: docker-compose up busted-tests
+
   run_build_diff:
     runs-on: ubuntu-latest
-    container:
-    # No good way to automatically get the lowercase repo owner name here.
-      image: ghcr.io/paliak/busted-tests
     steps:
       - name: Checkout HEAD
         uses: actions/checkout@v4
-      - name: Generate builds in reference to current commit
-        run: busted --lua=luajit -r generate
+      - name: Create cache directory
+        run: mkdir /tmp/Cache
       - name: Check if build cache exists
         id: cache-builds
         uses: actions/cache@v3
         env:
           cache-name: cached-dev-builds
         with:
-          path: spec/Cache
+          path: /tmp/Cache
           key: ${{ github.event.pull_request.base.sha }}
-      - if: ${{ steps.cache-builds.outputs.cache-hit != 'true' }}
-        name: Save changes to tests files
-        run: cp -r .busted spec /tmp/
-      - if: ${{ steps.cache-builds.outputs.cache-hit != 'true' }}
-        name: Checkout dev
-        uses: actions/checkout@v4
-        with:
-          ref: 'dev'
-      - if: ${{ steps.cache-builds.outputs.cache-hit != 'true' }}
-        name: Patch dev with latest tests files
-        run: rm -rf .busted spec && cp -r /tmp/.busted /tmp/spec .
-      - if: ${{ steps.cache-builds.outputs.cache-hit != 'true' }}
-        name: Generate builds in reference to dev branch
-        run: BUILDCACHEPREFIX="$(realpath spec/Cache)" busted --lua=luajit -r generate
-      - name: Display differences
-        run: >
-          for build in spec/Cache/*.lua;
-          do
-          BASENAME=$(basename "$build");
-          echo "[-] Diff for $BASENAME";
-          diff "$build" "/tmp/$BASENAME" || true;
-          echo "[+] Diff for $BASENAME";
-          done
+      - name: Run build diff
+        run: CACHEDIR="/tmp/Cache" docker-compose up busted-diff
+      

@@ -1,7 +1,7 @@
 services:
   busted-tests:
-    build: .
-    #image: ghcr.io/paliak/busted-tests
+    #build: .
+    image: ghcr.io/paliak/busted-tests
     container_name: busted-tests
     command: busted --lua=luajit
     security_opt:
@@ -12,9 +12,9 @@ services:
     volumes:
       - ./:/workdir:ro
   busted-diff:
-    build: .
-    #image: ghcr.io/paliak/busted-tests
-    environment:
+    #build: .
+    image: ghcr.io/paliak/busted-tests
+    environment: #Where in the container the folders are stored
       WORKDIR: /workdir
       CACHEDIR: /cache
     container_name: busted-diff
@@ -25,6 +25,6 @@ services:
     working_dir: /workdir
     volumes:
       - ./:/workdir:ro
-      - busted-diff-cache:/cache
+      - "${CACHEDIR:-busted-diff-cache}:/cache"
 volumes:
   busted-diff-cache:
