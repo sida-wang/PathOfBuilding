@@ -14,7 +14,7 @@ for key, val in pairs(r) do
     end
 end
 
-print("[?] Mismatch count: " .. #mismatch .. " for " .. arg[1] .. " and " arg[2])
+print("[?] Mismatch count: " .. #mismatch .. " for " .. arg[1] .. " and " .. arg[2])
 for _, key in ipairs(mismatch) do
     print(string.format("[%s] mismatch:", key))
     print("\t".. arg[1] .. ": " .. tostring(l[key]))
