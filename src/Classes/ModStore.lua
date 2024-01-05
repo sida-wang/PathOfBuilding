@@ -668,17 +668,31 @@ function ModStoreClass:EvalMod(mod, cfg)
 			end
 		elseif tag.type == "SkillName" then
 			local match = false
-			local matchName = tag.summonSkill and (cfg and cfg.summonSkillName or "") or (cfg and cfg.skillName or "")
-			matchName = matchName:lower()
-			if tag.skillNameList then
-				for _, name in pairs(tag.skillNameList) do
-					if name:lower() == matchName then
-						match = true
-						break
+			if tag.includeTransfigured then
+				local matchGameId = tag.summonSkill and (cfg and calcLib.getGameIdFromGemName(cfg.summonSkillName, true) or "") or (cfg and cfg.skillGem and cfg.skillGem.gameId or "")
+				if tag.skillNameList then
+					for _, name in pairs(tag.skillNameList) do
+						if name and matchGameId == calcLib.getGameIdFromGemName(name, true) then
+							match = true
+							break
+						end
 					end
+				else
+					match = (tag.skillName and matchGameId == calcLib.getGameIdFromGemName(tag.skillName, true))
 				end
 			else
-				match = (tag.skillName and tag.skillName:lower() == matchName)
+				local matchName = tag.summonSkill and (cfg and cfg.summonSkillName or "") or (cfg and cfg.skillName or "")
+				matchName = matchName:lower()
+				if tag.skillNameList then
+					for _, name in pairs(tag.skillNameList) do
+						if name:lower() == matchName then
+							match = true
+							break
+						end
+					end
+				else
+					match = (tag.skillName and tag.skillName:lower() == matchName)
+				end
 			end
 			if tag.neg then
 				match = not match
@@ -762,6 +776,33 @@ function ModStoreClass:EvalMod(mod, cfg)
 				return
 			end
 			if band(cfg.keywordFlags, tag.keywordFlags) ~= tag.keywordFlags then
+				return
+			end
+		elseif tag.type == "MonsterCategory" then
+			-- actor should be a minion to apply
+			if not self.actor or not self.actor.minionData or not self.actor.minionData.monsterCategory then
+				return
+			end
+
+			local match = false
+
+			-- validate for actor and minionData
+			local matchName = self.actor.minionData.monsterCategory
+			matchName = matchName:lower()
+			if tag.monsterCategoryList then
+				for _, name in pairs(tag.monsterCategoryList) do
+					if name:lower() == matchName then
+						match = true
+						break
+					end
+				end
+			else
+				match = (tag.monsterCategory and tag.monsterCategory:lower() == matchName)
+			end
+			if tag.neg then
+				match = not match
+			end
+			if not match then
 				return
 			end
 		end
