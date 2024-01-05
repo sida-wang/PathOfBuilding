@@ -1,27 +1,57 @@
-local function fetchBuilds(path, buildList)
-    buildList = buildList or {}
-    for file in lfs.dir(path) do
-        if file ~= "." and file ~= ".." then
-            local f = path..'/'..file
-            local attr = lfs.attributes (f)
-            assert(type(attr) == "table")
-            if attr.mode == "directory" then
-                fetchBuilds(f, buildList)
-            else
-                if file:match("^.+(%..+)$") == ".xml" then
-                    local fileHnd, errMsg = io.open(f, "r")
-                    if not fileHnd then
-                        return nil, errMsg
-                    end
-                    local fileText = fileHnd:read("*a")
-                    fileHnd:close()
-                    buildList[file] = fileText
+local function fetchBuilds(path)
+    local co = coroutine.create(function(path)
+        if os.getenv("BUILDLINKS") then
+            local fileHnd, errMsg = io.open(os.getenv("BUILDLINKS"), "r")
+            if not fileHnd then
+                error(errMsg)
+            end
+            local fileText = fileHnd:read("*a")
+            for line in magiclines( fileText ) do
+                if line ~= "" then
+                   for j=1,#buildSites.websiteList do
+                       if line:match(buildSites.websiteList[j].matchURL) then
+                            -- TODO: cache the downloaded xmls
+                            buildSites.DownloadBuild(line, buildSites.websiteList[j], function(isSuccess, data) 
+                               if isSuccess then
+                                  coroutine.yield({xml = Inflate(common.base64.decode(data:gsub("-","+"):gsub("_","/"))), filename = line})
+                               else
+                                  print("Failed to download build: " .. line)
+                               end
+                           end)
+                           break
+                       end
+                   end
+                end
+            end
+        else
+            for file in lfs.dir(path) do
+                if file ~= "." and file ~= ".." then
+                   local f = path..'/'..file
+                   local attr = lfs.attributes (f)
+                   assert(type(attr) == "table")
+                   if attr.mode ~= "directory" and file:match("^.+(%..+)$") == ".xml" then
+                       local fileHnd, errMsg = io.open(f, "r")
+                       if not fileHnd then
+                           error(errMsg)
+                       end
+                       local fileText = fileHnd:read("*a")
+                       fileHnd:close()
+                       coroutine.yield({xml = fileText, filename = file})
+                   end
                 end
             end
         end
+    end)
+ 
+    return function()
+        local ok, result = coroutine.resume(co, path)
+        if not ok then
+            error(result)
+        end
+        return result
     end
-    return buildList
-end
+ end
+ 
 
 function buildTable(tableName, values, string)
     string = string or ""
@@ -41,29 +71,16 @@ function buildTable(tableName, values, string)
     return string
 end
 
-local buildList = fetchBuilds("../spec/TestBuilds")
-local currentBuild = 0
-local buildCount = 0
-for _, _ in pairs(buildList) do
-    buildCount = buildCount + 1
-end
+for testBuild in fetchBuilds("../spec/TestBuilds") do
+    local filename = testBuild.filename:gsub('%W','')
+	local filepath = (os.getenv("BUILDCACHEPREFIX") or "/tmp") .. "/" .. filename
+    print("[+] Computing ".. filepath)
+    loadBuildFromXML(testBuild.xml)
+    local buildHnd = io.open(filepath .. ".build", "w+")
+    buildHnd:write(build:SaveDB("Cache"))
+    buildHnd:close()
 
-for filename, testBuild in pairs(buildList) do
-	local filepath = filename:gsub("(.+)%..+$", (os.getenv("BUILDCACHEPREFIX") or "/tmp") .. "/%1.lua")
-    print(string.format("[+] %d/%d Computing %s", currentBuild, buildCount, filepath))
-    currentBuild = currentBuild + 1
-    loadBuildFromXML(testBuild)
-	
-    local fileHnd, errMsg = io.open(filepath, "w+")
-    fileHnd:write("return {\n   xml = [[")
-    fileHnd:write(build:SaveDB("Cache"))
-    fileHnd:write("]],\n")
-    fileHnd:write(buildTable("output", build.calcsTab.mainOutput) .. "\n}")
-    fileHnd:close()
-    if (currentBuild % 10 == 0) then -- Duct tape fix for memory usage
-        local before = collectgarbage("count")
-        LoadModule("Data/ModCache", modLib.parseModCache)
-        collectgarbage("collect")
-        ConPrintf("%dkB => %dkB", before, collectgarbage("count"))
-    end
+    local outputHnd = io.open(filepath .. ".lua", "w+")
+    outputHnd:write("return {\n " .. buildTable("output", build.calcsTab.mainOutput) .. "\n}")
+    outputHnd:close()
 end
