@@ -1,17 +1,30 @@
 services:
   busted-tests:
-    #build: .
-    image: ghcr.io/paliak/busted-tests
+    build: .
+    #image: ghcr.io/paliak/busted-tests
     container_name: busted-tests
+    command: busted --lua=luajit
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "9966:9966"
+    working_dir: /workdir
     volumes:
-      - ./:/root
+      - ./:/workdir:ro
   busted-diff:
-    #build: .
-    image: ghcr.io/paliak/busted-tests
+    build: .
+    #image: ghcr.io/paliak/busted-tests
+    environment:
+      WORKDIR: /workdir
+      CACHEDIR: /cache
     container_name: busted-diff
     tty: true
-    command: /bin/sh -c 'chmod 777 ./spec/buildDiff.sh && ./spec/buildDiff.sh'
+    command: /bin/sh /workdir/spec/buildDiff.sh
+    security_opt:
+      - no-new-privileges:true
+    working_dir: /workdir
     volumes:
-      - ./:/root
+      - ./:/workdir:ro
+      - busted-diff-cache:/cache
+volumes:
+  busted-diff-cache:
