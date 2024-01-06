@@ -19,15 +19,20 @@ jobs:
     steps:
       - name: Checkout HEAD
         uses: actions/checkout@v4
-      - run: git fetch --depth=1
+      - name: Fetch Dev branch
+        run: git fetch --depth=1
       - name: Get Dev branch HEAD hash
         id: get-dev-ref
         run: echo "devref=$(git rev-parse origin/dev)" >> $GITHUB_OUTPUT
+      - name: Create cache folder
+        run: mkdir /tmp/cache/
       - name: Check if build cache exists
         uses: actions/cache@v3
         with:
-          path: /tmp
+          path: /tmp/cache/
           key: ${{ steps.get-dev-ref.outputs.devref }}
+      - name: Make sure cache is readable by docker
+        run: chmod -R 777 /tmp/cache
       - name: Run build diff
-        run: docker-compose up busted-diff
+        run: CACHEDIR="/tmp/cache" docker-compose up busted-diff
       
