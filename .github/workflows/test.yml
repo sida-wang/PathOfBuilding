@@ -20,16 +20,14 @@ jobs:
       - name: Checkout HEAD
         uses: actions/checkout@v4
       - run: git fetch --depth=1
-      - name: Create cache directory
-        run: mkdir /tmp/Cache
+      - name: Get Dev branch HEAD hash
+        id: get-dev-ref
+        run: echo "devref=$(git rev-parse origin/dev)" >> $GITHUB_OUTPUT
       - name: Check if build cache exists
-        id: cache-builds
         uses: actions/cache@v3
-        env:
-          cache-name: cached-dev-builds
         with:
-          path: /tmp/Cache
-          key: ${{ github.event.pull_request.base.sha }}
+          path: /tmp
+          key: ${{ steps.get-dev-ref.outputs.devref }}
       - name: Run build diff
-        run: CACHEDIR="/tmp/Cache" docker-compose up busted-diff
+        run: docker-compose up busted-diff
       

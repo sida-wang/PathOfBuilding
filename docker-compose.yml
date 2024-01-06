@@ -30,4 +30,4 @@ services:
     working_dir: /workdir
     volumes:
       - ./:/workdir:ro
-      - "${CACHEDIR:-/tmp}:/cache"
+      - /tmp:/cache
