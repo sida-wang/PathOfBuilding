@@ -1,6 +1,8 @@
 #!/bin/sh
 cd $WORKDIR
+umask 0
 git config --global --add safe.directory /workdir
+git config --global --add advice.detachedHead false
 headref=$(git rev-parse HEAD)
 devref=$(git rev-parse origin/dev)
 

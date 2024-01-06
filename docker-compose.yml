@@ -2,7 +2,10 @@ services:
   busted-tests:
     #build: .
     image: ghcr.io/paliak/busted-tests
+    environment:
+      HOME: /tmp
     container_name: busted-tests
+    user: nobody:nobody
     command: busted --lua=luajit
     security_opt:
       - no-new-privileges:true
@@ -17,14 +20,14 @@ services:
     environment: #Where in the container the folders are stored
       WORKDIR: /workdir
       CACHEDIR: /cache
+      HOME: /tmp
     container_name: busted-diff
     tty: true
+    user: nobody:nobody
     command: /bin/sh /workdir/spec/buildDiff.sh
     security_opt:
       - no-new-privileges:true
     working_dir: /workdir
     volumes:
       - ./:/workdir:ro
-      - "${CACHEDIR:-busted-diff-cache}:/cache"
-volumes:
-  busted-diff-cache:
+      - "${CACHEDIR:-/tmp}:/cache"
