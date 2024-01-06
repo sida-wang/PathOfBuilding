@@ -6,21 +6,36 @@ local function fetchBuilds(path)
                 error(errMsg)
             end
             local fileText = fileHnd:read("*a")
+            fileHnd:close()
             for line in magiclines( fileText ) do
                 if line ~= "" then
-                   for j=1,#buildSites.websiteList do
-                       if line:match(buildSites.websiteList[j].matchURL) then
-                            -- TODO: cache the downloaded xmls
-                            buildSites.DownloadBuild(line, buildSites.websiteList[j], function(isSuccess, data) 
-                               if isSuccess then
-                                  coroutine.yield({xml = Inflate(common.base64.decode(data:gsub("-","+"):gsub("_","/"))), filename = line})
-                               else
-                                  print("Failed to download build: " .. line)
-                               end
-                           end)
-                           break
-                       end
-                   end
+                    for j=1,#buildSites.websiteList do
+                        if line:match(buildSites.websiteList[j].matchURL) then
+                            local filename = line:gsub('%W','')
+
+                            -- Load from cache if downloaded already
+                            local fileHnd = io.open((os.getenv("CACHEDIR")  or "/tmp") .. "/" .. filename .. ".xml", "r") 
+                            if fileHnd then
+                                coroutine.yield({xml = fileHnd:read("*a"), filename = filename, link = line})
+                                fileHnd:close()
+                            else
+                                buildSites.DownloadBuild(line, buildSites.websiteList[j], function(isSuccess, data) 
+                                    if isSuccess then
+                                        local xml = Inflate(common.base64.decode(data:gsub("-","+"):gsub("_","/")))
+                                        coroutine.yield({xml = xml, filename = filename, link = line})
+                                        local xmlHnd = io.open((os.getenv("CACHEDIR")  or "/tmp") .. "/" .. filename .. ".xml", "w+")
+                                        xmlHnd:write(xml)
+                                        xmlHnd:close()
+                                    else
+                                       print("Failed to download build: " .. line)
+                                    end
+                                end)     
+                            end
+                            break
+                        elseif j == #buildSites.websiteList then
+                            print("Failed to match provider for: " .. line)
+                        end
+                    end
                 end
             end
         else
@@ -72,8 +87,7 @@ function buildTable(tableName, values, string)
 end
 
 for testBuild in fetchBuilds("../spec/TestBuilds") do
-    local filename = testBuild.filename:gsub('%W','')
-	local filepath = (os.getenv("BUILDCACHEPREFIX") or "/tmp") .. "/" .. filename
+	local filepath = (os.getenv("BUILDCACHEPREFIX") or "/tmp") .. "/" .. testBuild.filename
     print("[+] Computing ".. filepath)
     loadBuildFromXML(testBuild.xml)
     local buildHnd = io.open(filepath .. ".build", "w+")
