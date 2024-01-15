@@ -27,6 +27,7 @@ function calcs.initModDB(env, modDB)
 	modDB:NewMod("BlockChanceMax", "BASE", 75, "Base")
 	modDB:NewMod("SpellBlockChanceMax", "BASE", 75, "Base")
 	modDB:NewMod("SpellDodgeChanceMax", "BASE", 75, "Base")
+	modDB:NewMod("ChargeDuration", "BASE", 10, "Base")
 	modDB:NewMod("PowerChargesMax", "BASE", 3, "Base")
 	modDB:NewMod("FrenzyChargesMax", "BASE", 3, "Base")
 	modDB:NewMod("EnduranceChargesMax", "BASE", 3, "Base")
@@ -1293,7 +1294,7 @@ function calcs.initEnv(build, mode, override, specEnv)
 						if grantedEffect then
 							t_insert(supportList, {
 								grantedEffect = grantedEffect,
-								gemData = env.data.gems[env.data.gemForBaseName[grantedEffect.name] or env.data.gemForBaseName[grantedEffect.name .. " Support"]],
+								gemData = env.data.gems[env.data.gemForBaseName[grantedEffect.name:lower()] or env.data.gemForBaseName[(grantedEffect.name .. " Support"):lower()]],
 								level = value.level,
 								quality = 0,
 								enabled = true,
