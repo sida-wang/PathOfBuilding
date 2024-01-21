@@ -7,7 +7,7 @@ local function fetchBuilds(path)
             end
             local fileText = fileHnd:read("*a")
             fileHnd:close()
-            for line in magiclines( fileText ) do
+            for line in splitLines( fileText ) do
                 if line ~= "" then
                     for j=1,#buildSites.websiteList do
                         if line:match(buildSites.websiteList[j].matchURL) then
