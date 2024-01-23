@@ -264,7 +264,8 @@ end
 
 function calcSkillCooldown(skillModList, skillCfg, skillData)
 	local cooldownOverride = skillModList:Override(skillCfg, "CooldownRecovery")
-	local cooldown = cooldownOverride or (skillData.cooldown + skillModList:Sum("BASE", skillCfg, "CooldownRecovery")) / m_max(0, calcLib.mod(skillModList, skillCfg, "CooldownRecovery"))
+	local addedCooldown = skillModList:Sum("BASE", skillCfg, "CooldownRecovery")
+	local cooldown = cooldownOverride or ((skillData.cooldown or 0) + addedCooldown) / m_max(0, calcLib.mod(skillModList, skillCfg, "CooldownRecovery"))
 	-- If a skill can store extra uses and has a cooldown, it doesn't round the cooldown value to server ticks
 	local rounded = false
 	if (skillData.storedUses and skillData.storedUses > 1) or (skillData.VaalStoredUses and skillData.VaalStoredUses > 1) or skillModList:Sum("BASE", skillCfg, "AdditionalCooldownUses") > 0 then
@@ -272,7 +273,7 @@ function calcSkillCooldown(skillModList, skillCfg, skillData)
 	else
 		cooldown = m_ceil(cooldown * data.misc.ServerTickRate) / data.misc.ServerTickRate
 		rounded = true
-		return cooldown, rounded
+		return cooldown, rounded, addedCooldown
 	end
 end
 
@@ -326,7 +327,7 @@ function calcs.offence(env, actor, activeSkill)
 	end
 
 	local function calcAreaOfEffect(skillModList, skillCfg, skillData, skillFlags, output, breakdown)
-		local incArea, moreArea = calcLib.mods(skillModList, skillCfg, "AreaOfEffect")
+		local incArea, moreArea = calcLib.mods(skillModList, skillCfg, "AreaOfEffect", "AreaOfEffectPrimary")
 		output.AreaOfEffectMod = round(round(incArea * moreArea, 10), 2)
 		if skillData.radiusIsWeaponRange then
 			local range = 0
@@ -1128,12 +1129,12 @@ function calcs.offence(env, actor, activeSkill)
 			local incAreaBreakpoint, moreAreaBreakpoint, redAreaBreakpoint, lessAreaBreakpoint = calcRadiusBreakpoints(data.misc.TrapTriggerRadiusBase, incArea, moreArea)
 			breakdown.TrapTriggerRadius = breakdown.area(data.misc.TrapTriggerRadiusBase, areaMod, output.TrapTriggerRadius, incAreaBreakpoint, moreAreaBreakpoint, redAreaBreakpoint, lessAreaBreakpoint)
 		end
-	elseif skillData.cooldown then
-		local cooldown, rounded = calcSkillCooldown(skillModList, skillCfg, skillData)
+	elseif skillData.cooldown or skillModList:Sum("BASE", skillCfg, "CooldownRecovery") ~= 0 then
+		local cooldown, rounded, addedCooldown = calcSkillCooldown(skillModList, skillCfg, skillData)
 		output.Cooldown = cooldown
 		if breakdown then
 			breakdown.Cooldown = {
-				s_format("%.2fs ^8(base)", skillData.cooldown + skillModList:Sum("BASE", skillCfg, "CooldownRecovery")),
+				s_format("%.2fs ^8(base)", skillData.cooldown or 0 + addedCooldown),
 				s_format("/ %.2f ^8(increased/reduced cooldown recovery)", 1 + skillModList:Sum("INC", skillCfg, "CooldownRecovery") / 100),
 			}
 			if rounded then
@@ -2898,6 +2899,7 @@ function calcs.offence(env, actor, activeSkill)
 					if skillModList:Flag(skillCfg, "LuckyHits")
 					or (pass == 2 and damageType == "Lightning" and skillModList:Flag(skillCfg, "LightningNoCritLucky"))
 					or (pass == 1 and skillModList:Flag(skillCfg, "CritLucky"))
+					or (damageType == "Lightning" and modDB:Flag(nil, "LightningLuckHits"))
 					or ((damageType == "Lightning" or damageType == "Cold" or damageType == "Fire") and skillModList:Flag(skillCfg, "ElementalLuckHits")) then
 						damageTypeLuckyChance = 1
 					else
