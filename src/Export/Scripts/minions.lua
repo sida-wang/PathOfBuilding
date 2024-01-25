@@ -59,24 +59,6 @@ local itemClassMap = {
 
 local directiveTable = { }
 
--- #buildMonsterCategory
-directiveTable.buildMonsterCategory = function(state, args, out)
-	-- this only run once
-	if state.monsterCategoryDict then
-		return
-	end
-
-	local monsterCategoryTags = dat("corpsetypetags")
-	state.monsterCategoryDict = { }
-	local tagIndex = monsterCategoryTags.colMap["Tag"]
-	local nameIndex = monsterCategoryTags.colMap["Name"]
-	for i=1, monsterCategoryTags.rowCount do
-		local tagString = monsterCategoryTags:ReadCellText(i, tagIndex)
-		local nameString = monsterCategoryTags:ReadCellText(i, nameIndex)
-		state.monsterCategoryDict[tagString] = nameString
-	end
-end
-
 -- #monster <MonsterId> [<Name>] [<ExtraSkills>]
 directiveTable.monster = function(state, args, out)
 	state.varietyId = nil
@@ -118,8 +100,6 @@ end
 
 -- #emit
 directiveTable.emit = function(state, args, out)
-	-- this only run once internally
-	directiveTable.buildMonsterCategory(state, args, out)
 
 	local monsterVariety = dat("MonsterVarieties"):GetRow("Id", state.varietyId)
 	if not monsterVariety then
@@ -128,21 +108,29 @@ directiveTable.emit = function(state, args, out)
 	end
 	out:write('minions["', state.name, '"] = {\n')
 	out:write('\tname = "', monsterVariety.Name, '",\n')
-	if state.monsterCategoryDict then
-		-- identify the monster category base on tags and corpsetypetags.dat
+	out:write('\tmonsterTags = { ')
 		for _, tag in ipairs(monsterVariety.Tags) do
-			if state.monsterCategoryDict[tag.Id] then
-				out:write('\tmonsterCategory = "', state.monsterCategoryDict[tag.Id], '",\n')
-				break
-			end
+			out:write('"',tag.Id, '", ')
 		end
+	out:write('},\n')
+	if monsterVariety.Type.BaseDamageIgnoresAttackSpeed then
+		out:write('\tbaseDamageIgnoresAttackSpeed = true,\n')
 	end
 	out:write('\tlife = ', (monsterVariety.LifeMultiplier/100), ',\n')
+	if monsterVariety.Type.AltLife1 then
+		out:write('\tlifeScaling = "AltLife1",\n')
+	end
+	if monsterVariety.Type.AltLife2 then
+		out:write('\tlifeScaling = "AltLife2",\n')
+	end
 	if monsterVariety.Type.EnergyShield ~= 0 then
 		out:write('\tenergyShield = ', (0.4 * monsterVariety.Type.EnergyShield / 100), ',\n')
 	end
 	if monsterVariety.Type.Armour ~= 0 then
 		out:write('\tarmour = ', monsterVariety.Type.Armour / 100, ',\n')
+	end
+	if monsterVariety.Type.Evasion ~= 0 then
+		out:write('\tevasion = ', monsterVariety.Type.Evasion / 100, ',\n')
 	end
 	out:write('\tfireResist = ', monsterVariety.Type.Resistances.FireMerciless, ',\n')
 	out:write('\tcoldResist = ', monsterVariety.Type.Resistances.ColdMerciless, ',\n')
@@ -196,7 +184,7 @@ directiveTable.emit = function(state, args, out)
 				if skillStatMap[mod["Stat"..i].Id] then
 					local newMod = skillStatMap[mod["Stat"..i].Id][1]
 					--mod("Speed", "INC", -80, ModFlag.Cast, KeywordFlag.Curse)
-					out:write('\t\tmod("', newMod.name, '", "', newMod.type, '", ', newMod.value and tableToString(newMod.value) or (skillStatMap[mod["Stat"..i].Id].value or mod["Stat"..i.."Value"][1] * (skillStatMap[mod["Stat"..i].Id].mult or 1) / (skillStatMap[mod["Stat"..i].Id].div or 1)), ', ', newMod.flags or 0, ', ', newMod.keywordFlags or 0)
+					out:write('\t\tmod("', newMod.name, '", "', newMod.type, '", ', newMod.value and type(newMod.value) ~= "boolean" and tableToString(newMod.value) or (skillStatMap[mod["Stat"..i].Id].value or mod["Stat"..i.."Value"][1] * (skillStatMap[mod["Stat"..i].Id].mult or 1) / (skillStatMap[mod["Stat"..i].Id].div or 1)), ', ', newMod.flags or 0, ', ', newMod.keywordFlags or 0)
 					for _, extra in ipairs(newMod) do
 						out:write(', ', tableToString(extra))
 					end
