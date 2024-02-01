@@ -21,6 +21,7 @@ services:
       WORKDIR: /workdir
       CACHEDIR: /cache
       HOME: /tmp
+      LOGDIR: /logs
     container_name: busted-diff
     tty: true
     user: nobody:nobody
@@ -31,3 +32,4 @@ services:
     volumes:
       - ./:/workdir:ro
       - "${CACHEDIR:-/tmp}:/cache"
+      - ./spec/logs:/logs

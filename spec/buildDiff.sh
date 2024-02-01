@@ -5,6 +5,8 @@ git config --global --add safe.directory /workdir
 git config --global --add advice.detachedHead false
 headref=$(git rev-parse HEAD)
 devref=$(git rev-parse origin/dev)
+diffoutputlog=$LOGDIR/diffoutput.log
+rm -f $diffoutputlog
 
 if [[ ! -f "$CACHEDIR/$devref" ]] # Output of builds outdated or nonexistent
 then
@@ -34,8 +36,10 @@ then
     for build in $CACHEDIR/*.build
     do
         BASENAME=$(basename "$build")
-        echo "[-] Savefile Diff for $BASENAME"
-        diff "$build" "/tmp/$BASENAME"
-        echo "[+] Savefile Diff for $BASENAME"
+        if ! cmp -s "$build" "/tmp/$BASENAME"; then
+            echo "[-] Savefile Diff for $BASENAME" | tee -a $diffoutputlog
+            diff "$build" "/tmp/$BASENAME" | tee -a $diffoutputlog
+            echo "[+] Savefile Diff for $BASENAME" | tee -a $diffoutputlog
+        fi
     done
 fi
