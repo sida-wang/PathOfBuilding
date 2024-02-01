@@ -5,7 +5,7 @@ git config --global --add safe.directory /workdir
 git config --global --add advice.detachedHead false
 headref=$(git rev-parse HEAD)
 devref=$(git rev-parse origin/dev)
-diffoutputlog=$LOGDIR/diffoutput.log
+diffoutputlog=$LOGDIR/test_diffoutput.log
 rm -f $diffoutputlog
 
 if [[ ! -f "$CACHEDIR/$devref" ]] # Output of builds outdated or nonexistent

@@ -32,4 +32,4 @@ services:
     volumes:
       - ./:/workdir:ro
       - "${CACHEDIR:-/tmp}:/cache"
-      - ./spec/logs:/logs
+      - ./spec:/logs

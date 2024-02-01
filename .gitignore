@@ -18,7 +18,7 @@ luajit/
 spec/test_results.log
 spec/test_generation.log
 src/luacov.stats.out
-spec/logs/
+spec/test_diffoutput.log
 
 # Release
 manifest-updated.xml
